@@ -1,0 +1,64 @@
+import itertools
+import string
+import time
+import os
+import json
+
+# Configuration
+prefix = "!@"
+length = 8  # Length of the part after the prefix
+chars = string.ascii_letters + string.digits
+save_file = "progress.json"  # File to save progress
+
+# Calculate the total number of combinations
+total_combinations = len(chars) ** length
+max_combinations = 1000000  # Limiting to 1 million combinations
+delay_seconds = 0.03  # Delay of 0.08 seconds (adjust as needed)
+
+# Load the last progress if it exists
+start_index = 0
+if os.path.exists(save_file):
+    with open(save_file, "r") as sf:
+        progress = json.load(sf)
+        start_index = progress.get("last_index", 0)
+
+# Open the file to write the word list
+with open("wordlist.txt", "a") as f:  # Use 'a' to append to the file
+    try:
+        for i, combination in enumerate(itertools.product(chars, repeat=length), start=1):
+            if i <= start_index:
+                continue  # Skip already generated combinations
+
+            password = prefix + ''.join(combination)
+            
+            # Write the generated password to the file
+            f.write(password + "\n")
+            
+            # Flush the file buffer to ensure immediate writing
+            f.flush()
+            
+            # Print the generated password to the console
+            print(f"Generated password: {password}")
+            
+            # Save progress after each password generation
+            with open(save_file, "w") as sf:
+                json.dump({"last_index": i}, sf)
+
+            # Limit the number of combinations
+            if i >= max_combinations:
+                break
+            
+            # Introduce delay
+            time.sleep(delay_seconds)
+
+            # Print progress every 100,000 combinations
+            if i % 100000 == 0:
+                print(f"Generated {i}/{total_combinations} passwords ({(i/total_combinations)*100:.2f}%)")
+
+        print(f"Word list generation completed with {max_combinations} combinations.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        # Save progress on error
+        with open(save_file, "w") as sf:
+            json.dump({"last_index": i}, sf)
